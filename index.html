@@ -65,6 +65,8 @@
   .glyph::after{content:"";display:block;width:34px;height:2px;background:var(--shu);
     margin:6px auto 0;border-radius:2px;opacity:.85}
   .glyph small{font-size:.34em;color:var(--muted);letter-spacing:.1em;font-weight:400}
+  .glyph.g-md{font-size:clamp(50px,15vw,74px)}
+  .glyph.g-sm{font-size:clamp(38px,11vw,56px);letter-spacing:.02em}
 
   .field{margin-top:18px}
   .flabel{font-size:12px;color:var(--muted);letter-spacing:.22em;margin:0 2px 9px}
@@ -86,6 +88,10 @@
   .reveal b{color:var(--jade);font-weight:600}
   .reveal .lab{color:var(--muted);letter-spacing:.16em;font-size:11px;margin-right:8px}
   .reveal .tl{font-family:var(--mincho);color:var(--faint);padding:0 2px}
+  .reveal .ex{margin-top:10px;padding-top:10px;border-top:1px solid var(--line);
+    font-family:var(--mincho);font-size:15px;line-height:1.8;color:var(--fg)}
+  .reveal .ex .lab{font-family:var(--gothic)}
+  .reveal .ex .tr{font-family:var(--gothic);font-size:12.5px;color:var(--muted);margin-top:3px;line-height:1.6}
 
   /* judge stamp */
   .stamp{position:absolute;top:16px;right:18px;font-family:var(--mincho);font-size:30px;
@@ -195,26 +201,27 @@
 /* seg = [正解候補...]（先頭が表示用）。reading/meaning は「〜」で区切った各セグメント */
 const DATA = [
   // 句法
-  {id:'k1',kanji:'不能',cat:'不可能',reading:[['あたはず','あたわず']],meaning:[['できない']],note:'「能はず」＝あたはず。〜できない'},
-  {id:'k2',kanji:'請',cat:'願望',reading:[['こふ','こう']],meaning:[['どうか'],['させてください','してください']],note:'請ふ。「どうか〜させてください／してください」'},
-  {id:'k3',kanji:'安',cat:'反語',reading:[['いづくんぞ','いずくんぞ']],meaning:[['どうして'],['か']],note:'反語。「どうして〜か、いや〜ない」を含意'},
-  {id:'k4',kanji:'豈',cat:'反語',reading:[['あに']],meaning:[['どうして'],['か']],note:'豈〜んや。敢へて(あへて)も同類'},
-  {id:'k5',kanji:'誠',cat:'仮定',reading:[['まことに']],meaning:[['もし本当に','もし'],['ば','ならば']],note:'仮定の代表は苟・如・若。誠は「本当に」入りの仮定'},
-  {id:'k6',kanji:'見',cat:'受身',reading:[['る・らる','るらる','る らる']],meaning:[['される']],note:'受身の助動詞。る／らる'},
-  {id:'k7',kanji:'且 / 況',cat:'抑揚',reading:[['すら'],['いはんや','いわんや'],['をや']],meaning:[['でさえ'],['まして'],['なおさら']],note:'A且B…況C乎＝AすらB、いはんやC〜をや（AでさえB、ましてCはなおさら）'},
+  {id:'k1',kanji:'不能',cat:'不可能',reading:[['あたはず','あたわず']],meaning:[['できない']],note:'「能はず」＝あたはず。〜できない',ex:'之を奈何（いかん）ともする能はず。',tr:'これをどうすることもできない。'},
+  {id:'k2',kanji:'請',cat:'願望',reading:[['こふ','こう']],meaning:[['どうか'],['させてください','してください']],note:'請ふ。「どうか〜させてください／してください」',ex:'臣請ふ、往（ゆ）かん。',tr:'私めに、どうか行かせてください。'},
+  {id:'k3',kanji:'安',cat:'反語',reading:[['いづくんぞ','いずくんぞ']],meaning:[['どうして'],['か']],note:'反語。「どうして〜か、いや〜ない」を含意',ex:'燕雀安（いづ）くんぞ鴻鵠（こうこく）の志を知らんや。',tr:'小鳥にどうして大鳥の志がわかろうか、いやわからない。'},
+  {id:'k4',kanji:'豈',cat:'反語',reading:[['あに']],meaning:[['どうして'],['か']],note:'豈〜んや。敢へて(あへて)も同類',ex:'豈（あ）に敢へて辞せんや。',tr:'どうして辞退などしようか、いや辞退しない。'},
+  {id:'k5',kanji:'誠',cat:'仮定',reading:[['まことに']],meaning:[['もし本当に','もし'],['ば','ならば']],note:'仮定の代表は苟・如・若。誠は「本当に」入りの仮定',ex:'誠に賢ならば、必ず用ひられん。',tr:'もし本当に賢ければ、きっと用いられるだろう。'},
+  {id:'k6',kanji:'見',cat:'受身',reading:[['る・らる','るらる','る らる']],meaning:[['される']],note:'受身の助動詞。る／らる',ex:'人に欺（あざむ）かる。',tr:'人にだまされる。'},
+  {id:'k7',kanji:'且 / 況 / 乎',cat:'抑揚',reading:[['すら'],['いはんや','いわんや'],['をや']],meaning:[['でさえ'],['まして'],['なおさら']],note:'A且B…況C乎＝AすらB、いはんやC〜をや（且→すら／況→いはんや／乎→をや）',ex:'死馬すら且つ之を買ふ。況（いは）んや生ける馬をや。',tr:'死んだ馬でさえ買う。まして生きている馬はなおさらだ。〔戦国策・先従隗始〕'},
   // 再読文字
-  {id:'s1',kanji:'未',cat:'再読文字',reading:[['いまだ'],['ず']],meaning:[['まだ'],['ない']]},
-  {id:'s2',kanji:'将',cat:'再読文字',reading:[['まさに'],['んとす','んとす。','す']],meaning:[['今にも'],['しようとする']]},
-  {id:'s3',kanji:'且',cat:'再読文字',reading:[['まさに'],['んとす','す']],meaning:[['今にも'],['しようとする']],note:'将と同じ。句法だと「すら」なので混同注意'},
-  {id:'s4',kanji:'当',cat:'再読文字',reading:[['まさに'],['べし']],meaning:[['すべきだ']],note:'当然「〜すべきだ」'},
-  {id:'s5',kanji:'応',cat:'再読文字',reading:[['まさに'],['べし']],meaning:[['きっと'],['だろう']],note:'推量「きっと〜だろう」'},
-  {id:'s6',kanji:'宜',cat:'再読文字',reading:[['よろしく'],['べし']],meaning:[['するのがよい','するのがよい。','したほうがよい']]},
-  {id:'s7',kanji:'須',cat:'再読文字',reading:[['すべからく'],['べし']],meaning:[['ぜひ'],['する必要がある']]},
-  {id:'s8',kanji:'猶',cat:'再読文字',reading:[['なほ','なお'],['ごとし']],meaning:[['ちょうど'],['のようだ']]},
-  {id:'s9',kanji:'由',cat:'再読文字',reading:[['なほ','なお'],['ごとし']],meaning:[['ちょうど'],['のようだ']],note:'猶と同じ'},
-  {id:'s10',kanji:'盍',cat:'再読文字',reading:[['なんぞ'],['ざる']],meaning:[['どうして'],['しないのか']]},
+  {id:'s1',kanji:'未',cat:'再読文字',reading:[['いまだ'],['ず']],meaning:[['まだ'],['ない']],ex:'未だ嘗（かつ）て敗れず。',tr:'まだ一度も負けたことがない。'},
+  {id:'s2',kanji:'将',cat:'再読文字',reading:[['まさに'],['んとす','んとす。','す']],meaning:[['今にも'],['しようとする']],ex:'日将（まさ）に暮れんとす。',tr:'日が今にも暮れようとしている。'},
+  {id:'s3',kanji:'且',cat:'再読文字',reading:[['まさに'],['んとす','す']],meaning:[['今にも'],['しようとする']],note:'将と同じ。句法だと「すら」なので混同注意',ex:'年且（まさ）に九十ならんとす。',tr:'年齢は今にも九十になろうとしている。'},
+  {id:'s4',kanji:'当',cat:'再読文字',reading:[['まさに'],['べし']],meaning:[['すべきだ']],note:'当然「〜すべきだ」',ex:'当（まさ）に勉励すべし。',tr:'当然、努力すべきだ。'},
+  {id:'s5',kanji:'応',cat:'再読文字',reading:[['まさに'],['べし']],meaning:[['きっと'],['だろう']],note:'推量「きっと〜だろう」',ex:'応（まさ）に故郷の事を知るべし。',tr:'きっと故郷のことを知っているだろう。'},
+  {id:'s6',kanji:'宜',cat:'再読文字',reading:[['よろしく'],['べし']],meaning:[['するのがよい','するのがよい。','したほうがよい']],ex:'宜（よろ）しく早く起くべし。',tr:'早く起きるのがよい。'},
+  {id:'s7',kanji:'須',cat:'再読文字',reading:[['すべからく'],['べし']],meaning:[['ぜひ'],['する必要がある']],ex:'学者は須（すべか）らく書を読むべし。',tr:'学ぶ者はぜひ本を読むべきだ。'},
+  {id:'s8',kanji:'猶',cat:'再読文字',reading:[['なほ','なお'],['ごとし']],meaning:[['ちょうど'],['のようだ']],ex:'過ぎたるは猶（なほ）及ばざるがごとし。',tr:'やり過ぎるのは、ちょうど足りないのと同じだ。'},
+  {id:'s9',kanji:'由',cat:'再読文字',reading:[['なほ','なお'],['ごとし']],meaning:[['ちょうど'],['のようだ']],note:'猶と同じ',ex:'由（なほ）水の低きに就（つ）くがごとし。',tr:'ちょうど水が低い方へ流れるようなものだ。'},
+  {id:'s10',kanji:'盍',cat:'再読文字',reading:[['なんぞ'],['ざる']],meaning:[['どうして'],['しないのか']],ex:'盍（なん）ぞ各（おのおの）爾（なんぢ）の志を言はざる。',tr:'どうしてめいめい自分の志を言わないのか。'},
 ];
 const byId = Object.fromEntries(DATA.map(d=>[d.id,d]));
+function glyphSize(k){ const n=(k||'').replace(/\s/g,'').length; return n>=5?'g-sm':(n>=3?'g-md':''); }
 
 /* ---------- 保存：Claudeのストレージ → 端末localStorage → 一時メモリ ---------- */
 const Store = (()=>{
@@ -302,7 +309,7 @@ function renderQuestion(){
   <div class="card">
     <div class="stamp" id="stamp"></div>
     <div class="eyebrow">${q.cat}</div>
-    <div class="glyph">${q.kanji}</div>
+    <div class="glyph ${glyphSize(q.kanji)}">${q.kanji}</div>
 
     <div class="field">
       <div class="flabel">読み</div>
@@ -353,13 +360,17 @@ function judge(){
     if(!ok) allOK=false;
   });
 
+  const rev=document.getElementById('reveal');
+  let html='';
   if(!allOK){
     const rd=q.reading.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
     const mn=q.meaning.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
-    const rev=document.getElementById('reveal');
-    rev.innerHTML=`<div><span class="lab">読み</span>${rd}</div><div style="margin-top:4px"><span class="lab">意味</span>${mn}</div>`;
-    rev.classList.add('show');
+    html+=`<div><span class="lab">読み</span>${rd}</div><div style="margin-top:4px"><span class="lab">意味</span>${mn}</div>`;
   }
+  if(q.ex){
+    html+=`<div class="ex"><span class="lab">例文</span>${q.ex}<div class="tr">${q.tr}</div></div>`;
+  }
+  if(html){ rev.innerHTML=html; rev.classList.add('show'); }
 
   answered=true; lastWrong=!allOK; results.total++;
   const stamp=document.getElementById('stamp');
