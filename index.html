@@ -1,0 +1,506 @@
+<!DOCTYPE html>
+<html lang="ja">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, viewport-fit=cover">
+<meta name="theme-color" content="#15120f">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<title>漢文ドリル</title>
+<style>
+  :root{
+    --ink:#15120f; --ink2:#1d1813; --panel:#241e18; --raise:#2c2519;
+    --line:rgba(236,227,210,.12); --line2:rgba(236,227,210,.20);
+    --fg:#ece3d2; --muted:#9c9080; --faint:#6d6457;
+    --shu:#dd4a2c; --shu-soft:rgba(221,74,44,.16); --shu-line:rgba(221,74,44,.5);
+    --jade:#83bf94; --jade-soft:rgba(131,191,148,.16); --jade-line:rgba(131,191,148,.55);
+    --mincho:"Hiragino Mincho ProN","Yu Mincho",YuMincho,"Noto Serif JP","Songti SC",serif;
+    --gothic:-apple-system,"Hiragino Sans","Hiragino Kaku Gothic ProN","Yu Gothic",YuGothic,"Noto Sans JP",system-ui,sans-serif;
+  }
+  *{box-sizing:border-box;-webkit-tap-highlight-color:transparent}
+  html,body{margin:0;height:100%}
+  body{
+    background:
+      radial-gradient(120% 80% at 50% -10%, #1f1913 0%, var(--ink) 55%) fixed;
+    color:var(--fg); font-family:var(--gothic);
+    -webkit-font-smoothing:antialiased; line-height:1.5;
+    padding:env(safe-area-inset-top) env(safe-area-inset-right) env(safe-area-inset-bottom) env(safe-area-inset-left);
+  }
+  .wrap{max-width:480px;margin:0 auto;min-height:100%;display:flex;flex-direction:column;padding:0 16px 28px}
+
+  /* header */
+  header{display:flex;align-items:center;gap:10px;padding:18px 2px 14px}
+  .brand{display:flex;align-items:baseline;gap:8px;font-family:var(--mincho)}
+  .brand b{font-weight:600;font-size:20px;letter-spacing:.14em}
+  .brand .dot{width:7px;height:7px;border-radius:50%;background:var(--shu);transform:translateY(-2px)}
+  .spacer{flex:1}
+  select{
+    appearance:none;font-family:var(--gothic);font-size:13px;color:var(--fg);
+    background:var(--panel);border:1px solid var(--line2);border-radius:9px;
+    padding:8px 30px 8px 12px;cursor:pointer;
+    background-image:linear-gradient(45deg,transparent 50%,var(--muted) 50%),linear-gradient(135deg,var(--muted) 50%,transparent 50%);
+    background-position:calc(100% - 16px) 50%,calc(100% - 11px) 50%;
+    background-size:5px 5px,5px 5px;background-repeat:no-repeat;
+  }
+
+  /* progress strip */
+  .meter{display:flex;align-items:center;gap:12px;font-size:12px;color:var(--muted);margin:0 2px 16px}
+  .bar{flex:1;height:3px;background:var(--ink2);border-radius:99px;overflow:hidden}
+  .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--shu),#e8854f);transition:width .35s ease}
+  .meter .num{font-variant-numeric:tabular-nums;letter-spacing:.04em}
+
+  /* card */
+  .card{
+    position:relative;background:linear-gradient(180deg,var(--ink2),var(--panel));
+    border:1px solid var(--line);border-radius:18px;padding:26px 22px 24px;
+    box-shadow:0 1px 0 rgba(255,255,255,.03) inset, 0 18px 40px -28px #000;
+  }
+  .eyebrow{font-size:11px;letter-spacing:.34em;text-transform:none;color:var(--shu);
+    font-weight:600;text-align:center;margin-bottom:14px}
+  .glyph{
+    font-family:var(--mincho);text-align:center;font-weight:500;
+    font-size:clamp(76px,22vw,108px);line-height:1.04;letter-spacing:.06em;
+    padding:2px 0 10px;position:relative;
+  }
+  .glyph::after{content:"";display:block;width:34px;height:2px;background:var(--shu);
+    margin:6px auto 0;border-radius:2px;opacity:.85}
+  .glyph small{font-size:.34em;color:var(--muted);letter-spacing:.1em;font-weight:400}
+
+  .field{margin-top:18px}
+  .flabel{font-size:12px;color:var(--muted);letter-spacing:.22em;margin:0 2px 9px}
+  .slots{display:flex;flex-wrap:wrap;align-items:center;gap:8px}
+  .tilde{font-family:var(--mincho);color:var(--faint);font-size:20px;padding:0 1px;user-select:none}
+  input.slot{
+    flex:1 1 auto;min-width:84px;font-family:var(--gothic);font-size:17px;color:var(--fg);
+    background:var(--ink);border:1px solid var(--line2);border-radius:11px;
+    padding:13px 12px;outline:none;transition:border-color .15s, box-shadow .15s, background .15s;
+  }
+  input.slot::placeholder{color:var(--faint)}
+  input.slot:focus{border-color:var(--shu-line);box-shadow:0 0 0 3px var(--shu-soft);background:#16110d}
+  input.slot.ok{border-color:var(--jade-line);background:var(--jade-soft)}
+  input.slot.ng{border-color:var(--shu-line);background:var(--shu-soft)}
+  input.slot:disabled{opacity:1}
+  .reveal{display:none;margin-top:14px;padding:12px 14px;background:var(--ink);
+    border:1px solid var(--line);border-radius:11px;font-size:13.5px;line-height:1.7}
+  .reveal.show{display:block}
+  .reveal b{color:var(--jade);font-weight:600}
+  .reveal .lab{color:var(--muted);letter-spacing:.16em;font-size:11px;margin-right:8px}
+  .reveal .tl{font-family:var(--mincho);color:var(--faint);padding:0 2px}
+
+  /* judge stamp */
+  .stamp{position:absolute;top:16px;right:18px;font-family:var(--mincho);font-size:30px;
+    line-height:1;opacity:0;transform:scale(.6) rotate(-8deg);transition:opacity .25s, transform .25s}
+  .stamp.show{opacity:1;transform:scale(1) rotate(-8deg)}
+  .stamp.maru{color:var(--jade)}
+  .stamp.batu{color:var(--shu)}
+
+  .note{margin-top:16px;font-size:13px;color:var(--muted);line-height:1.6;
+    border-left:2px solid var(--shu-line);padding:2px 0 2px 12px;display:none}
+  .note.show{display:block}
+
+  /* buttons */
+  .actions{display:flex;gap:10px;margin-top:20px}
+  button.btn{flex:1;font-family:var(--gothic);font-size:15.5px;font-weight:600;letter-spacing:.06em;
+    color:var(--ink);background:var(--shu);border:none;border-radius:12px;padding:15px;cursor:pointer;
+    transition:filter .15s, transform .05s}
+  button.btn:active{transform:translateY(1px)}
+  button.btn:hover{filter:brightness(1.06)}
+  button.btn.ghost{background:transparent;color:var(--fg);border:1px solid var(--line2)}
+  button.btn.ghost:hover{filter:none;border-color:var(--line2);background:var(--ink2)}
+  button.btn.sm{flex:0 0 auto;font-size:13px;padding:13px 16px}
+
+  .hint{text-align:center;font-size:11.5px;color:var(--faint);margin-top:12px;letter-spacing:.04em}
+
+  /* footer record button */
+  .foot{margin-top:auto;padding-top:20px;display:flex;gap:10px;align-items:center;justify-content:center}
+  .linkbtn{background:none;border:none;color:var(--muted);font-family:var(--gothic);font-size:12.5px;
+    letter-spacing:.08em;cursor:pointer;padding:8px;display:inline-flex;align-items:center;gap:6px}
+  .linkbtn:hover{color:var(--fg)}
+  .badge{display:inline-flex;min-width:18px;height:18px;padding:0 5px;align-items:center;justify-content:center;
+    background:var(--shu);color:var(--ink);font-size:11px;font-weight:700;border-radius:9px}
+
+  /* sheet (records) */
+  .scrim{position:fixed;inset:0;background:rgba(8,6,4,.6);backdrop-filter:blur(2px);
+    opacity:0;pointer-events:none;transition:opacity .2s;z-index:20}
+  .scrim.open{opacity:1;pointer-events:auto}
+  .sheet{position:fixed;left:0;right:0;bottom:0;z-index:21;max-width:480px;margin:0 auto;
+    background:var(--ink2);border:1px solid var(--line);border-bottom:none;
+    border-radius:20px 20px 0 0;padding:8px 18px calc(20px + env(safe-area-inset-bottom));
+    transform:translateY(100%);transition:transform .28s cubic-bezier(.2,.8,.2,1);max-height:78vh;display:flex;flex-direction:column}
+  .sheet.open{transform:translateY(0)}
+  .grip{width:38px;height:4px;background:var(--line2);border-radius:99px;margin:8px auto 12px}
+  .sheet h3{margin:0 2px 4px;font-family:var(--mincho);font-weight:600;font-size:16px;letter-spacing:.08em}
+  .sheet .sub{margin:0 2px 12px;font-size:12px;color:var(--muted)}
+  .rec{overflow-y:auto;margin:0 -4px;flex:1}
+  .recrow{display:flex;align-items:center;gap:12px;padding:11px 6px;border-top:1px solid var(--line)}
+  .recrow .k{font-family:var(--mincho);font-size:22px;min-width:42px;text-align:center}
+  .recrow .info{flex:1;min-width:0}
+  .recrow .ct{font-size:11px;color:var(--muted);letter-spacing:.18em}
+  .recrow .rd{font-size:13.5px;color:var(--fg);white-space:nowrap;overflow:hidden;text-overflow:ellipsis}
+  .recrow .cnt{font-variant-numeric:tabular-nums;font-size:12px;color:var(--shu);
+    border:1px solid var(--shu-line);border-radius:8px;padding:3px 8px;white-space:nowrap}
+  .empty{text-align:center;color:var(--faint);font-size:13px;padding:30px 0}
+  .sheetfoot{display:flex;gap:10px;margin-top:14px}
+  .reset{background:none;border:1px solid var(--line2);color:var(--muted);border-radius:10px;
+    padding:11px;font-family:var(--gothic);font-size:12.5px;cursor:pointer;flex:0 0 auto}
+  .reset:hover{color:var(--shu);border-color:var(--shu-line)}
+
+  /* done screen */
+  .done{text-align:center;padding:40px 10px}
+  .done .big{font-family:var(--mincho);font-size:44px;color:var(--jade);margin-bottom:6px}
+  .done p{color:var(--muted);font-size:14px;margin:4px 0 20px}
+
+  @media (prefers-reduced-motion:reduce){*{transition:none!important}}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <header>
+    <div class="brand"><span class="dot"></span><b>漢文ドリル</b></div>
+    <span class="spacer"></span>
+    <select id="deck" aria-label="出題範囲"></select>
+  </header>
+
+  <div class="meter">
+    <span class="num" id="count">0 / 0</span>
+    <span class="bar"><i id="barfill"></i></span>
+    <span class="num">正答 <span id="acc">–</span></span>
+  </div>
+
+  <div id="stage"></div>
+
+  <div class="foot">
+    <button class="linkbtn" id="openRec">
+      間違い記録 <span class="badge" id="recBadge" style="display:none">0</span>
+    </button>
+  </div>
+</div>
+
+<div class="scrim" id="scrim"></div>
+<div class="sheet" id="sheet" role="dialog" aria-label="間違い記録">
+  <div class="grip"></div>
+  <h3>間違い記録</h3>
+  <p class="sub" id="recSub">まだ記録なし</p>
+  <div class="rec" id="recList"></div>
+  <div class="sheetfoot">
+    <button class="btn" id="reviewBtn">復習モードで解く</button>
+    <button class="reset" id="resetBtn">記録を消す</button>
+  </div>
+</div>
+
+<script>
+"use strict";
+
+/* ---------- データ ---------- */
+/* seg = [正解候補...]（先頭が表示用）。reading/meaning は「〜」で区切った各セグメント */
+const DATA = [
+  // 句法
+  {id:'k1',kanji:'不能',cat:'不可能',reading:[['あたはず','あたわず']],meaning:[['できない']],note:'「能はず」＝あたはず。〜できない'},
+  {id:'k2',kanji:'請',cat:'願望',reading:[['こふ','こう']],meaning:[['どうか'],['させてください','してください']],note:'請ふ。「どうか〜させてください／してください」'},
+  {id:'k3',kanji:'安',cat:'反語',reading:[['いづくんぞ','いずくんぞ']],meaning:[['どうして'],['か']],note:'反語。「どうして〜か、いや〜ない」を含意'},
+  {id:'k4',kanji:'豈',cat:'反語',reading:[['あに']],meaning:[['どうして'],['か']],note:'豈〜んや。敢へて(あへて)も同類'},
+  {id:'k5',kanji:'誠',cat:'仮定',reading:[['まことに']],meaning:[['もし本当に','もし'],['ば','ならば']],note:'仮定の代表は苟・如・若。誠は「本当に」入りの仮定'},
+  {id:'k6',kanji:'見',cat:'受身',reading:[['る・らる','るらる','る らる']],meaning:[['される']],note:'受身の助動詞。る／らる'},
+  {id:'k7',kanji:'且 / 況',cat:'抑揚',reading:[['すら'],['いはんや','いわんや'],['をや']],meaning:[['でさえ'],['まして'],['なおさら']],note:'A且B…況C乎＝AすらB、いはんやC〜をや（AでさえB、ましてCはなおさら）'},
+  // 再読文字
+  {id:'s1',kanji:'未',cat:'再読文字',reading:[['いまだ'],['ず']],meaning:[['まだ'],['ない']]},
+  {id:'s2',kanji:'将',cat:'再読文字',reading:[['まさに'],['んとす','んとす。','す']],meaning:[['今にも'],['しようとする']]},
+  {id:'s3',kanji:'且',cat:'再読文字',reading:[['まさに'],['んとす','す']],meaning:[['今にも'],['しようとする']],note:'将と同じ。句法だと「すら」なので混同注意'},
+  {id:'s4',kanji:'当',cat:'再読文字',reading:[['まさに'],['べし']],meaning:[['すべきだ']],note:'当然「〜すべきだ」'},
+  {id:'s5',kanji:'応',cat:'再読文字',reading:[['まさに'],['べし']],meaning:[['きっと'],['だろう']],note:'推量「きっと〜だろう」'},
+  {id:'s6',kanji:'宜',cat:'再読文字',reading:[['よろしく'],['べし']],meaning:[['するのがよい','するのがよい。','したほうがよい']]},
+  {id:'s7',kanji:'須',cat:'再読文字',reading:[['すべからく'],['べし']],meaning:[['ぜひ'],['する必要がある']]},
+  {id:'s8',kanji:'猶',cat:'再読文字',reading:[['なほ','なお'],['ごとし']],meaning:[['ちょうど'],['のようだ']]},
+  {id:'s9',kanji:'由',cat:'再読文字',reading:[['なほ','なお'],['ごとし']],meaning:[['ちょうど'],['のようだ']],note:'猶と同じ'},
+  {id:'s10',kanji:'盍',cat:'再読文字',reading:[['なんぞ'],['ざる']],meaning:[['どうして'],['しないのか']]},
+];
+const byId = Object.fromEntries(DATA.map(d=>[d.id,d]));
+
+/* ---------- 保存：Claudeのストレージ → 端末localStorage → 一時メモリ ---------- */
+const Store = (()=>{
+  const hasCl = (typeof window!=='undefined' && window.storage && typeof window.storage.get==='function');
+  let ls=true; try{localStorage.setItem('_t','1');localStorage.removeItem('_t');}catch(e){ls=false;}
+  const mem={};
+  return {
+    async load(k,def){
+      if(hasCl){
+        try{ const r=await window.storage.get(k); return (r&&r.value!=null)?JSON.parse(r.value):def; }catch(e){ return def; }
+      }
+      try{ const v=ls?localStorage.getItem(k):mem[k]; return v==null?def:JSON.parse(v); }catch(e){ return def; }
+    },
+    save(k,v){
+      const s=JSON.stringify(v);
+      if(hasCl){ try{ Promise.resolve(window.storage.set(k,s)).catch(()=>{}); }catch(e){} return; }
+      try{ if(ls)localStorage.setItem(k,s); else mem[k]=s; }catch(e){}
+    },
+    where(){ return hasCl?'Claudeのストレージ':(ls?'この端末':'一時メモリ'); }
+  };
+})();
+let wrongCount = {};            // {id: 累計ミス回数}
+let reviewPool = new Set();     // 現在の復習対象
+function saveState(){ Store.save('kb_wrong',wrongCount); Store.save('kb_pool',[...reviewPool]); }
+
+/* ---------- 正規化＆判定 ---------- */
+function norm(s){
+  return (s||'').replace(/[\s\u3000]/g,'').replace(/[。．、，]+$/,'').trim();
+}
+function matchSeg(input, accepts){
+  const a=norm(input);
+  return accepts.some(x=>norm(x)===a);
+}
+
+/* ---------- 出題状態 ---------- */
+let queue=[], qi=0, results={right:0,total:0}, currentMode='全部';
+let answered=false, lastWrong=false;
+
+function buildDeck(mode){
+  let pool;
+  if(mode==='句法') pool=DATA.filter(d=>d.id[0]==='k');
+  else if(mode==='再読文字') pool=DATA.filter(d=>d.id[0]==='s');
+  else if(mode==='復習') pool=DATA.filter(d=>reviewPool.has(d.id));
+  else pool=DATA.slice();
+  // シャッフル
+  for(let i=pool.length-1;i>0;i--){const j=Math.random()*(i+1)|0;[pool[i],pool[j]]=[pool[j],pool[i]];}
+  return pool;
+}
+
+function startDeck(mode){
+  currentMode=mode;
+  queue=buildDeck(mode); qi=0; results={right:0,total:0};
+  if(queue.length===0){ renderEmptyDeck(mode); return; }
+  renderQuestion();
+}
+
+/* ---------- 描画 ---------- */
+const stage=document.getElementById('stage');
+
+function renderEmptyDeck(mode){
+  stage.innerHTML=`<div class="card"><div class="done">
+    <div class="big">空</div>
+    <p>${mode==='復習'?'復習する間違いがまだないよ。<br>まず全部モードで解いてみて。':'この範囲に問題がありません。'}</p>
+    <button class="btn ghost" onclick="setDeck('全部')">全部モードへ</button>
+  </div></div>`;
+  updateMeter();
+}
+
+function renderQuestion(){
+  answered=false; lastWrong=false;
+  const q=queue[qi];
+  const segs=[...q.reading.map((s,i)=>({kind:'r',i,accepts:s})),
+              ...q.meaning.map((s,i)=>({kind:'m',i,accepts:s}))];
+  const rN=q.reading.length;
+
+  const slotHTML=(group,fromIndex)=>group.map((seg,i)=>{
+    const idx=fromIndex+i;
+    const t=i<group.length-1?'<span class="tilde">〜</span>':'';
+    return `<input class="slot" data-idx="${idx}" type="text" inputmode="text"
+      autocomplete="off" autocapitalize="off" spellcheck="false"
+      placeholder="${i===0?'…':'…'}">${t}`;
+  }).join('');
+
+  stage.innerHTML=`
+  <div class="card">
+    <div class="stamp" id="stamp"></div>
+    <div class="eyebrow">${q.cat}</div>
+    <div class="glyph">${q.kanji}</div>
+
+    <div class="field">
+      <div class="flabel">読み</div>
+      <div class="slots">${slotHTML(q.reading,0)}</div>
+    </div>
+    <div class="field">
+      <div class="flabel">意味</div>
+      <div class="slots">${slotHTML(q.meaning,rN)}</div>
+    </div>
+
+    <div class="reveal" id="reveal"></div>
+
+    <div class="note" id="note">${q.note?q.note:''}</div>
+
+    <div class="actions" id="actions">
+      <button class="btn" id="primary">答え合わせ</button>
+    </div>
+    <div class="hint" id="hint">Enter で次の欄／空欄のまま Enter で不正解スキップ</div>
+  </div>`;
+
+  // 入力欄イベント
+  const slots=[...stage.querySelectorAll('input.slot')];
+  slots.forEach((el,idx)=>{
+    el.addEventListener('keydown',ev=>{
+      if(ev.key!=='Enter') return;
+      if(ev.isComposing||ev.keyCode===229) return; // IME変換中は無視
+      ev.preventDefault();
+      if(answered){ next(); return; }
+      if(el.value.trim()===''){ judge(); return; } // 空欄のままEnter → 即・不正解スキップ
+      if(idx<slots.length-1){ slots[idx+1].focus(); }
+      else { judge(); }
+    });
+  });
+  document.getElementById('primary').onclick=()=>{ answered?next():judge(); };
+  if(!q.note) document.getElementById('note').textContent='';
+  setTimeout(()=>slots[0]&&slots[0].focus(),30);
+  updateMeter();
+}
+
+function judge(){
+  const q=queue[qi];
+  const segs=[...q.reading,...q.meaning];
+  const slots=[...stage.querySelectorAll('input.slot')];
+  let allOK=true;
+  slots.forEach((el,idx)=>{
+    const ok=matchSeg(el.value,segs[idx]);
+    el.classList.add(ok?'ok':'ng'); el.disabled=true;
+    if(!ok) allOK=false;
+  });
+
+  if(!allOK){
+    const rd=q.reading.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
+    const mn=q.meaning.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
+    const rev=document.getElementById('reveal');
+    rev.innerHTML=`<div><span class="lab">読み</span>${rd}</div><div style="margin-top:4px"><span class="lab">意味</span>${mn}</div>`;
+    rev.classList.add('show');
+  }
+
+  answered=true; lastWrong=!allOK; results.total++;
+  const stamp=document.getElementById('stamp');
+  if(allOK){
+    results.right++;
+    reviewPool.delete(q.id);
+    stamp.textContent='○'; stamp.className='stamp maru show';
+  }else{
+    wrongCount[q.id]=(wrongCount[q.id]||0)+1;
+    reviewPool.add(q.id);
+    stamp.textContent='×'; stamp.className='stamp batu show';
+  }
+  saveState();
+
+  if(q.note) document.getElementById('note').classList.add('show');
+
+  const actions=document.getElementById('actions');
+  const lastQ = qi>=queue.length-1;
+  actions.innerHTML =
+    (lastWrong?`<button class="btn ghost sm" id="forgive">正解にする</button>`:``)+
+    `<button class="btn" id="primary">${lastQ?'結果を見る':'次の問題へ'}</button>`;
+  document.getElementById('primary').onclick=next;
+  if(lastWrong){
+    document.getElementById('forgive').onclick=()=>{
+      // 自己採点で正解扱い：記録から外す
+      wrongCount[q.id]=Math.max(0,(wrongCount[q.id]||1)-1);
+      if(wrongCount[q.id]===0) delete wrongCount[q.id];
+      reviewPool.delete(q.id);
+      results.right++; lastWrong=false;
+      saveState(); updateBadge();
+      const s=document.getElementById('stamp'); s.textContent='○'; s.className='stamp maru show';
+      document.getElementById('forgive').remove();
+      updateMeter();
+    };
+  }
+  document.getElementById('hint').textContent='Enter でも次へ進めるよ';
+  document.getElementById('primary').focus();
+  updateMeter(); updateBadge();
+}
+
+function next(){
+  if(qi>=queue.length-1){ renderDone(); return; }
+  qi++; renderQuestion();
+}
+
+function renderDone(){
+  answered=false;
+  const acc=results.total?Math.round(results.right/results.total*100):0;
+  const missed=results.total-results.right;
+  stage.innerHTML=`<div class="card"><div class="done">
+    <div class="big">${acc}<small style="font-size:.5em">点</small></div>
+    <p>${results.right} / ${results.total} 正解　${missed>0?`・ 間違い ${missed}`:'・ 全問正解！'}</p>
+    <div class="actions">
+      ${missed>0||reviewPool.size?`<button class="btn" id="again">間違いを復習</button>`:''}
+      <button class="btn ${missed>0||reviewPool.size?'ghost':''}" id="redo">もう一度</button>
+    </div>
+  </div></div>`;
+  const a=document.getElementById('again'); if(a)a.onclick=()=>setDeck('復習');
+  document.getElementById('redo').onclick=()=>startDeck(currentMode==='復習'?'全部':currentMode);
+  updateMeter();
+}
+
+/* ---------- メーター / バッジ ---------- */
+function updateMeter(){
+  const total=queue.length, done=Math.min(qi+ (answered?1:0), total);
+  document.getElementById('count').textContent=`${queue.length?Math.min(qi+1,total):0} / ${total}`;
+  document.getElementById('barfill').style.width=(total?done/total*100:0)+'%';
+  document.getElementById('acc').textContent=results.total?Math.round(results.right/results.total*100)+'%':'–';
+}
+function updateBadge(){
+  const n=reviewPool.size;
+  const b=document.getElementById('recBadge');
+  b.textContent=n; b.style.display=n?'inline-flex':'none';
+}
+
+/* ---------- 範囲セレクト ---------- */
+const deckSel=document.getElementById('deck');
+function refreshDeckOptions(){
+  const opts=[['全部',`全部 (${DATA.length})`],
+              ['句法',`句法 (${DATA.filter(d=>d.id[0]==='k').length})`],
+              ['再読文字',`再読文字 (${DATA.filter(d=>d.id[0]==='s').length})`],
+              ['復習',`復習 (${reviewPool.size})`]];
+  const cur=deckSel.value||'全部';
+  deckSel.innerHTML=opts.map(([v,l])=>`<option value="${v}"${v===cur?' selected':''}>${l}</option>`).join('');
+}
+function setDeck(mode){ deckSel.value=mode; refreshDeckOptions(); startDeck(mode); }
+window.setDeck=setDeck;
+deckSel.onchange=()=>startDeck(deckSel.value);
+
+/* ---------- 記録シート ---------- */
+const scrim=document.getElementById('scrim'), sheet=document.getElementById('sheet');
+function openSheet(){ renderRecords(); scrim.classList.add('open'); sheet.classList.add('open'); }
+function closeSheet(){ scrim.classList.remove('open'); sheet.classList.remove('open'); }
+document.getElementById('openRec').onclick=openSheet;
+scrim.onclick=closeSheet;
+function renderRecords(){
+  const rows=Object.keys(wrongCount).filter(id=>wrongCount[id]>0)
+    .map(id=>({d:byId[id],n:wrongCount[id]}))
+    .sort((a,b)=>b.n-a.n);
+  const list=document.getElementById('recList');
+  const sub=document.getElementById('recSub');
+  if(rows.length===0){
+    sub.textContent=`まだ間違いの記録はないよ。（保存先：${Store.where()}）`;
+    list.innerHTML=`<div class="empty">ここに間違えた字と回数が出るよ</div>`;
+  }else{
+    sub.textContent=`${rows.length} 字 ・ のべ ${rows.reduce((s,r)=>s+r.n,0)} 回ミス　（保存先：${Store.where()}）`;
+    list.innerHTML=rows.map(r=>{
+      const rd=r.d.reading.map(s=>s[0]).join('〜');
+      return `<div class="recrow">
+        <div class="k">${r.d.kanji}</div>
+        <div class="info"><div class="ct">${r.d.cat}</div><div class="rd">${rd}</div></div>
+        <div class="cnt">×${r.n}</div>
+      </div>`;
+    }).join('');
+  }
+}
+document.getElementById('reviewBtn').onclick=()=>{
+  if(reviewPool.size===0){ document.getElementById('recSub').textContent='復習対象がないよ。全部モードで間違えると貯まる。'; return; }
+  closeSheet(); setDeck('復習');
+};
+document.getElementById('resetBtn').onclick=()=>{
+  if(!confirm('間違い記録をすべて消す？')) return;
+  wrongCount={}; reviewPool=new Set(); saveState();
+  refreshDeckOptions(); renderRecords(); updateBadge();
+};
+
+/* グローバルEnter：結果画面/完了画面でも次へ */
+document.addEventListener('keydown',ev=>{
+  if(ev.key!=='Enter'||ev.isComposing||ev.keyCode===229) return;
+  if(sheet.classList.contains('open')) return;
+  const tag=document.activeElement&&document.activeElement.tagName;
+  if(tag==='INPUT'||tag==='BUTTON'||tag==='SELECT') return; // それぞれ個別処理
+  if(answered){ ev.preventDefault(); next(); }
+});
+
+/* ---------- 起動 ---------- */
+(async function init(){
+  wrongCount = await Store.load('kb_wrong',{});
+  reviewPool = new Set(await Store.load('kb_pool',[]));
+  refreshDeckOptions(); updateBadge(); startDeck('全部');
+})();
+</script>
+</body>
+</html>
