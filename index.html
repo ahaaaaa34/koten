@@ -49,6 +49,21 @@
   .bar i{display:block;height:100%;width:0;background:linear-gradient(90deg,var(--shu),#e8854f);transition:width .35s ease}
   .meter .num{font-variant-numeric:tabular-nums;letter-spacing:.04em}
 
+  /* answer-mode segmented control */
+  .modewrap{display:flex;align-items:center;gap:10px;margin:0 2px 16px}
+  .mcap{font-size:11px;color:var(--muted);letter-spacing:.2em;white-space:nowrap}
+  .modes{display:flex;flex:1;background:var(--ink2);border:1px solid var(--line);border-radius:11px;padding:3px}
+  .mseg{flex:1;border:none;background:none;color:var(--muted);font-family:var(--gothic);font-size:13.5px;
+    font-weight:600;padding:9px 6px;border-radius:8px;cursor:pointer;letter-spacing:.08em;transition:background .15s,color .15s}
+  .mseg.on{background:var(--shu);color:var(--ink)}
+
+  /* given (shown) hint side */
+  .given{margin-top:16px;padding:12px 14px;background:var(--ink);border:1px solid var(--line2);
+    border-radius:11px;font-size:15px;line-height:1.7}
+  .given .lab{color:var(--muted);letter-spacing:.16em;font-size:11px;margin-right:8px}
+  .given b{font-weight:600;color:var(--fg)}
+  .given .tl{font-family:var(--mincho);color:var(--faint);padding:0 2px}
+
   /* card */
   .card{
     position:relative;background:linear-gradient(180deg,var(--ink2),var(--panel));
@@ -173,6 +188,15 @@
     <span class="num">正答 <span id="acc">–</span></span>
   </div>
 
+  <div class="modewrap">
+    <span class="mcap">答える</span>
+    <div class="modes" id="modes">
+      <button class="mseg on" data-m="both">両方</button>
+      <button class="mseg" data-m="reading">読み</button>
+      <button class="mseg" data-m="meaning">意味</button>
+    </div>
+  </div>
+
   <div id="stage"></div>
 
   <div class="foot">
@@ -259,6 +283,8 @@ function matchSeg(input, accepts){
 /* ---------- 出題状態 ---------- */
 let queue=[], qi=0, results={right:0,total:0}, currentMode='全部';
 let answered=false, lastWrong=false;
+let answerMode='both';                 // both | reading | meaning
+let cur={inputGroups:[], inputSegs:[]};
 
 function buildDeck(mode){
   let pool;
@@ -293,16 +319,30 @@ function renderEmptyDeck(mode){
 function renderQuestion(){
   answered=false; lastWrong=false;
   const q=queue[qi];
-  const segs=[...q.reading.map((s,i)=>({kind:'r',i,accepts:s})),
-              ...q.meaning.map((s,i)=>({kind:'m',i,accepts:s}))];
-  const rN=q.reading.length;
 
-  const slotHTML=(group,fromIndex)=>group.map((seg,i)=>{
-    const idx=fromIndex+i;
-    const t=i<group.length-1?'<span class="tilde">〜</span>':'';
-    return `<input class="slot" data-idx="${idx}" type="text" inputmode="text"
-      autocomplete="off" autocapitalize="off" spellcheck="false"
-      placeholder="${i===0?'…':'…'}">${t}`;
+  // 出題形式：入力する側 と 表示する（ヒントの）側 を決める
+  let inputGroups, shownGroups;
+  if(answerMode==='reading'){ inputGroups=[{key:'読み',segs:q.reading}]; shownGroups=[{key:'意味',segs:q.meaning}]; }
+  else if(answerMode==='meaning'){ inputGroups=[{key:'意味',segs:q.meaning}]; shownGroups=[{key:'読み',segs:q.reading}]; }
+  else { inputGroups=[{key:'読み',segs:q.reading},{key:'意味',segs:q.meaning}]; shownGroups=[]; }
+  cur={inputGroups, inputSegs: inputGroups.reduce((a,g)=>a.concat(g.segs),[])};
+
+  // ヒント（表示する側）
+  const shownHTML = shownGroups.map(g=>{
+    const txt=g.segs.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
+    return `<div class="given"><span class="lab">${g.key}</span>${txt}</div>`;
+  }).join('');
+
+  // 入力する側
+  let idx=0;
+  const fieldHTML = inputGroups.map(g=>{
+    const slots=g.segs.map((seg,i)=>{
+      const myIdx=idx++;
+      const t=i<g.segs.length-1?'<span class="tilde">〜</span>':'';
+      return `<input class="slot" data-idx="${myIdx}" type="text" inputmode="text"
+        autocomplete="off" autocapitalize="off" spellcheck="false" placeholder="…">${t}`;
+    }).join('');
+    return `<div class="field"><div class="flabel">${g.key}</div><div class="slots">${slots}</div></div>`;
   }).join('');
 
   stage.innerHTML=`
@@ -310,20 +350,10 @@ function renderQuestion(){
     <div class="stamp" id="stamp"></div>
     <div class="eyebrow">${q.cat}</div>
     <div class="glyph ${glyphSize(q.kanji)}">${q.kanji}</div>
-
-    <div class="field">
-      <div class="flabel">読み</div>
-      <div class="slots">${slotHTML(q.reading,0)}</div>
-    </div>
-    <div class="field">
-      <div class="flabel">意味</div>
-      <div class="slots">${slotHTML(q.meaning,rN)}</div>
-    </div>
-
+    ${shownHTML}
+    ${fieldHTML}
     <div class="reveal" id="reveal"></div>
-
     <div class="note" id="note">${q.note?q.note:''}</div>
-
     <div class="actions" id="actions">
       <button class="btn" id="primary">答え合わせ</button>
     </div>
@@ -332,14 +362,14 @@ function renderQuestion(){
 
   // 入力欄イベント
   const slots=[...stage.querySelectorAll('input.slot')];
-  slots.forEach((el,idx)=>{
+  slots.forEach((el,i)=>{
     el.addEventListener('keydown',ev=>{
       if(ev.key!=='Enter') return;
       if(ev.isComposing||ev.keyCode===229) return; // IME変換中は無視
       ev.preventDefault();
       if(answered){ next(); return; }
-      if(el.value.trim()===''){ judge(); return; } // 空欄のままEnter → 即・不正解スキップ
-      if(idx<slots.length-1){ slots[idx+1].focus(); }
+      if(el.value.trim()===''){ judge(); return; } // 空欄Enter → 不正解スキップ
+      if(i<slots.length-1){ slots[i+1].focus(); }
       else { judge(); }
     });
   });
@@ -351,7 +381,7 @@ function renderQuestion(){
 
 function judge(){
   const q=queue[qi];
-  const segs=[...q.reading,...q.meaning];
+  const segs=cur.inputSegs;
   const slots=[...stage.querySelectorAll('input.slot')];
   let allOK=true;
   slots.forEach((el,idx)=>{
@@ -363,9 +393,10 @@ function judge(){
   const rev=document.getElementById('reveal');
   let html='';
   if(!allOK){
-    const rd=q.reading.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
-    const mn=q.meaning.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
-    html+=`<div><span class="lab">読み</span>${rd}</div><div style="margin-top:4px"><span class="lab">意味</span>${mn}</div>`;
+    html+=cur.inputGroups.map(g=>{
+      const t=g.segs.map(s=>`<b>${s[0]}</b>`).join('<span class="tl">〜</span>');
+      return `<div><span class="lab">${g.key}</span>${t}</div>`;
+    }).join('');
   }
   if(q.ex){
     html+=`<div class="ex"><span class="lab">例文</span>${q.ex}<div class="tr">${q.tr}</div></div>`;
@@ -459,6 +490,16 @@ function refreshDeckOptions(){
 function setDeck(mode){ deckSel.value=mode; refreshDeckOptions(); startDeck(mode); }
 window.setDeck=setDeck;
 deckSel.onchange=()=>startDeck(deckSel.value);
+
+/* 出題形式の切り替え */
+document.querySelectorAll('.mseg').forEach(b=>{
+  b.onclick=()=>{
+    if(b.dataset.m===answerMode) return;
+    answerMode=b.dataset.m;
+    document.querySelectorAll('.mseg').forEach(x=>x.classList.toggle('on',x===b));
+    startDeck(currentMode);
+  };
+});
 
 /* ---------- 記録シート ---------- */
 const scrim=document.getElementById('scrim'), sheet=document.getElementById('sheet');
