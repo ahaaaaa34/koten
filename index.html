@@ -375,7 +375,8 @@ function renderQuestion(){
   });
   document.getElementById('primary').onclick=()=>{ answered?next():judge(); };
   if(!q.note) document.getElementById('note').textContent='';
-  setTimeout(()=>slots[0]&&slots[0].focus(),30);
+  if(slots[0]) slots[0].focus();            // 同期フォーカス：キーボードを開いたまま維持
+  setTimeout(()=>{ if(slots[0]&&document.activeElement!==slots[0]) slots[0].focus(); },0);
   updateMeter();
 }
 
@@ -386,7 +387,7 @@ function judge(){
   let allOK=true;
   slots.forEach((el,idx)=>{
     const ok=matchSeg(el.value,segs[idx]);
-    el.classList.add(ok?'ok':'ng'); el.disabled=true;
+    el.classList.add(ok?'ok':'ng');   // 欄はロックせず色だけ（キーボード維持のため）
     if(!ok) allOK=false;
   });
 
@@ -437,8 +438,9 @@ function judge(){
       updateMeter();
     };
   }
-  document.getElementById('hint').textContent='Enter でも次へ進めるよ';
-  document.getElementById('primary').focus();
+  document.getElementById('hint').textContent='Enter で次の問題へ';
+  // 入力欄にフォーカスを残してキーボードを開いたままにする（ボタンに移さない）
+  const keep=slots[slots.length-1]; if(keep) keep.focus();
   updateMeter(); updateBadge();
 }
 
